@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Chat messanger</title>
+    <style>
+        .messages {
+            height:500px;
+        }
+        #contentWrap{
+            display: none
+        }
+        #chatWrap{
+            float: left;
+            height: 50%;
+            border-style: solid;
+        }
+        #users{
+            float: right;
+        }
+    </style>
+
+    <script
+            src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous">
+    </script>
+    <script src="socket.io/socket.io.js"></script>
+
+</head>
+<body>
+    <div id="userWrap">
+        <p>Enter your user name</p>
+        <p id="userError"></p>
+        <form id="setUsername">
+            <input size="35" id="username"></input>
+            <input type="submit"></input>
+        </form>
+    </div>
+
+    <div id="contentWrap">
+        <div id="chatWrap">
+            <ul class="messages"> </ul>
+            <div class="composer-area">
+                <input id="composer"></input>
+                <button id="send-button">Send </button>
+            </div>
+        </div>
+
+        <div id="users"></div>
+    </div>
+
+    <script>
+        $(function(){
+            var socket = io();
+            var $userForm = $('#setUsername');
+            var $userError = $('#userError');
+            var $usernamesBox = $('#username');
+
+            $userForm.submit(function(e){
+                e.preventDefault();
+                socket.emit('new user', $usernamesBox.val(), function(data){
+                    if(data){
+                        $("#userWrap").hide();
+                        $("#contentWrap").show();
+                    } else{
+                        $userError.html('User name already logged in.!!');
+                    }
+                });
+                $usernamesBox.val('');
+            });
+
+            socket.on('usernames', function(users){
+                var html = '';
+                for(i=0; i<users.length; i++){
+                    html = html + users[i] + '<br/>'
+                }
+                $('#users').html(html);
+            });
+
+            $('#send-button').on('click', function(){
+                sendMessage();
+            });
+
+            $('#composer').keypress(function(e){
+                if(e.which == 13){
+                    sendMessage();
+                }
+            });
+
+            socket.on('new_message', function(msg){
+                var d = new Date();
+                d = d.getHours() + ':' + d.getMinutes();
+                console.log(this);
+                $('.messages').append('<b>'+ msg.user + '</b> ' + '</br>' + d + ' : ' + msg.data + '</br>');
+            });
+
+            function sendMessage(){
+                var message = $('#composer').val().trim();
+                if (!message){
+                    return false;
+                }
+                socket.emit('message', message);
+                $('#composer').val('').focus();
+                return false
+            }
+        })
+    </script>
+</body>
+</html>
